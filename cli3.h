@@ -224,7 +224,6 @@ public:
 //    SaveCommand(const char* dna_id, DataBase db, const char* file_name = "");
     SaveCommand();
     ~SaveCommand();
-    //DnaSequenceAnalyzer* getDNA();
     const char* getFilename();
 
     void addObserver(Observer * const _pObserver);
@@ -243,8 +242,8 @@ protected:
 private:
     std::list<Observer *> m_registeredObservers;
 
-    DataBase *m_db;
-    size_t m_dna_id;
+//    DataBase *m_db;
+//    size_t m_dna_id;
     String m_message_extra_args;
     String m_message_lack_args;
 };
@@ -266,9 +265,6 @@ inline SaveCommand::~SaveCommand(){
     }
 }
 
-//inline DnaSequenceAnalyzer* SaveCommand::getDNA(){
-//    return m_dna_a;
-//}
 
 inline const char* SaveCommand::getFilename(){
     return m_filename;
@@ -316,7 +312,6 @@ inline void SaveCommand::setup(VectorS str_vec, DataBase& db) {
     const char* dna_id;
     size_t id = 0;
     int flag = 0;
-    //dna_vector dna_v = db.getDnas();
     size_t size = str_vec.size();
 
 
@@ -325,7 +320,6 @@ inline void SaveCommand::setup(VectorS str_vec, DataBase& db) {
         m_comm = pObserver;
 
         dna_id = str_vec[1].c_str();
-        m_db = &db;
         m_dna_v = db.getDnas();
         memcpy(temp, dna_id + 1, strlen(dna_id) - 1);
         id = size_t(strtol(temp, NULL, 10));
@@ -360,10 +354,6 @@ inline void SaveCommand::execute() {
     FileStatus fileStatus(*this, m_comm);
     fileStatus.addObserver(m_comm);
     fileStatus.notifyObservers();
-//    if(m_dna_a) // !isDna
-//        m_dna_a->save(m_filename);
-//    else
-//        std::cout << "Error: invalid sequence" << std::endl;
 }
 
 inline DnaSequenceAnalyzer *SaveCommand::getDnaA() {
@@ -414,38 +404,6 @@ inline bool DnaObserver::save(DnaSequenceAnalyzer& dna_a) {
     dna_a.save(p_save->getFilename());
     std::cout << "After save." << std::endl;
     return true;
-
-    //    if(m_dna_a) // !isDna
-//        m_dna_a->save(m_filename);
-//    else
-//        std::cout << "Error: invalid sequence" << std::endl;
-//    if(p_quit->getModified() == 0 && p_quit->getNew() == 0){
-//        std::cout << "Thank you for using Dnalanyzer." << "\nGoodbye! " << std::endl;
-//        Run::updateQuit();
-//        return true;
-//    }
-//
-//    std::cout << "There are " << p_quit->getModified() << " modified and " << p_quit->getNew() <<
-//              " new sequences. Are ""you sure you want to quit?" << std::endl;
-//    std::cout << "Please confirm by 'y' or 'Y', or cancel by 'n' or 'N'." << std::endl;
-//
-//    while (true) {
-//        std::string tmp;
-//        std::cout << "> confirm >>> ";
-//        std::cin >> tmp;
-//        const char* temp = tmp.c_str();
-//
-//        if (!strcmp(temp, "Y") || !strcmp(temp, "y")) {
-//            std::cout << "Thank you for using Dnalanyzer." << "\nGoodbye! " << std::endl;
-//            Run::updateQuit();
-//            return true;
-//        }
-//        if (!strcmp(temp, "N") || !strcmp(temp, "n"))
-//            return false;
-//        else
-//            std::cout << "You have typed an invalid response. Please either confirm by 'y'/'Y', or cancel by "
-//                         "'n'/'N'." << std::endl;
-//    }
 }
 
 ////////////////////   End of: Save Command  ////////////////////
@@ -475,7 +433,6 @@ protected:
     dna_vector m_dna_v;
 private:
     std::list<Observer *> m_registeredObservers;
-    DataBase* m_db; // TODO: See if necessary to keep
     bool m_exit;
 };
 
@@ -534,7 +491,7 @@ inline void QuitCommand::setup(VectorS str_vec, DataBase &db) {
 
     m_dna_v = static_cast<dna_vector>(0);
     m_comm = pObserver;
-    m_db = &db;
+    //m_db = &db;
     m_dna_v = db.getDnas();
 }
 
