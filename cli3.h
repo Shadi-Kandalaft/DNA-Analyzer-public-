@@ -224,6 +224,8 @@ public:
 //    SaveCommand(const char* dna_id, DataBase db, const char* file_name = "");
     SaveCommand();
     ~SaveCommand();
+    //DnaSequenceAnalyzer* getDNA();
+    const char* getFilename();
 
     void addObserver(Observer * const _pObserver);
     void removeObserver(Observer * const _pObserver);
@@ -236,6 +238,7 @@ public:
 protected:
     Observer* m_comm;
     DnaSequenceAnalyzer *m_dna_a;
+    dna_vector m_dna_v;
     const char* m_filename;
 private:
     std::list<Observer *> m_registeredObservers;
@@ -263,6 +266,14 @@ inline SaveCommand::~SaveCommand(){
     }
 }
 
+//inline DnaSequenceAnalyzer* SaveCommand::getDNA(){
+//    return m_dna_a;
+//}
+
+inline const char* SaveCommand::getFilename(){
+    return m_filename;
+}
+
 
 inline void SaveCommand::addObserver(Observer * const _pObserver){
     _pObserver->observedSubject = this;
@@ -278,7 +289,7 @@ inline void SaveCommand::notifyObservers(){
     std::list<Observer *>::iterator it = m_registeredObservers.begin();
 
     while (it != m_registeredObservers.end()){
-        //  (*it)->save();  TODO: FIX
+        (*it)->save(*m_dna_a);
         it++;
     }
 }
@@ -286,7 +297,7 @@ inline void SaveCommand::notifyObservers(){
 
 class FileStatus : public SaveCommand {
 public:
-    FileStatus(dna_vector& dna_v, Observer* observer);
+    FileStatus(SaveCommand& s_com, Observer* observer);
     ~FileStatus();
 
     bool checkFileNameValidation() const;
@@ -305,18 +316,22 @@ inline void SaveCommand::setup(VectorS str_vec, DataBase& db) {
     const char* dna_id;
     size_t id = 0;
     int flag = 0;
-    dna_vector dna_v = db.getDnas();
+    //dna_vector dna_v = db.getDnas();
     size_t size = str_vec.size();
 
+
     if(size >= 2){
+        Observer* pObserver = new DnaObserver();
+        m_comm = pObserver;
 
         dna_id = str_vec[1].c_str();
         m_db = &db;
+        m_dna_v = db.getDnas();
         memcpy(temp, dna_id + 1, strlen(dna_id) - 1);
         id = size_t(strtol(temp, NULL, 10));
 
         dna_vector::iterator it;
-        for (it = dna_v.begin(); it != dna_v.end(); ++it)   {
+        for (it = m_dna_v.begin(); it != m_dna_v.end(); ++it)   {
             if(it.operator*()->getId() == id){
                 m_dna_a = *it;
                 flag = 1;
@@ -342,10 +357,13 @@ inline void SaveCommand::setup(VectorS str_vec, DataBase& db) {
 }
 
 inline void SaveCommand::execute() {
-    if(m_dna_a) // !isDna
-        m_dna_a->save(m_filename);
-    else
-        std::cout << "Error: invalid sequence" << std::endl;
+    FileStatus fileStatus(*this, m_comm);
+    fileStatus.addObserver(m_comm);
+    fileStatus.notifyObservers();
+//    if(m_dna_a) // !isDna
+//        m_dna_a->save(m_filename);
+//    else
+//        std::cout << "Error: invalid sequence" << std::endl;
 }
 
 inline DnaSequenceAnalyzer *SaveCommand::getDnaA() {
@@ -364,14 +382,15 @@ inline bool FileStatus::getIsInDir() const {
 }
 
 inline bool FileStatus::checkFileNameValidation() const {
-    return false;
+    return true;
 }
 
 inline bool FileStatus::checkFileNameInDir() const {
-    return false;
+    return true;
 }
 
-inline FileStatus::FileStatus(dna_vector &dna_v, Observer *observer) {
+inline FileStatus::FileStatus(SaveCommand& s_com, Observer *observer) {
+    m_dna_a = s_com.getDnaA();
     m_comm = observer;
     m_is_name_valid = true;
     m_is_in_dir = false;
@@ -382,33 +401,51 @@ inline bool DnaObserver::save(DnaSequenceAnalyzer& dna_a) {
     p_save->checkFileNameValidation();
     p_save->checkFileNameInDir();
 
-//    if(p_save->getModified() == 0 && p_save->getNew() == 0){
+    if(!p_save->getValidation()){ //&& !p_save->getIsInDir()){
+        std::cout << "The file name is invalid, please try again" << std::endl;
+        return false;
+    }
+    if(p_save->getIsInDir()){ //&& !p_save->getIsInDir()){
+        std::cout << "This file name is already in directory, please try again." << std::endl;
+        return false;
+    }
+    //if(dna_a) // !isDna
+    std::cout << "Before save." << std::endl;
+    dna_a.save(p_save->getFilename());
+    std::cout << "After save." << std::endl;
+    return true;
+
+    //    if(m_dna_a) // !isDna
+//        m_dna_a->save(m_filename);
+//    else
+//        std::cout << "Error: invalid sequence" << std::endl;
+//    if(p_quit->getModified() == 0 && p_quit->getNew() == 0){
 //        std::cout << "Thank you for using Dnalanyzer." << "\nGoodbye! " << std::endl;
 //        Run::updateQuit();
 //        return true;
 //    }
-
+//
 //    std::cout << "There are " << p_quit->getModified() << " modified and " << p_quit->getNew() <<
 //              " new sequences. Are ""you sure you want to quit?" << std::endl;
 //    std::cout << "Please confirm by 'y' or 'Y', or cancel by 'n' or 'N'." << std::endl;
-
-    while (true) {
-        std::string tmp;
-        std::cout << "> confirm >>> ";
-        std::cin >> tmp;
-        const char* temp = tmp.c_str();
-
-        if (!strcmp(temp, "Y") || !strcmp(temp, "y")) {
-            std::cout << "Thank you for using Dnalanyzer." << "\nGoodbye! " << std::endl;
-            Run::updateQuit();
-            return true;
-        }
-        if (!strcmp(temp, "N") || !strcmp(temp, "n"))
-            return false;
-        else
-            std::cout << "You have typed an invalid response. Please either confirm by 'y'/'Y', or cancel by "
-                         "'n'/'N'." << std::endl;
-    }
+//
+//    while (true) {
+//        std::string tmp;
+//        std::cout << "> confirm >>> ";
+//        std::cin >> tmp;
+//        const char* temp = tmp.c_str();
+//
+//        if (!strcmp(temp, "Y") || !strcmp(temp, "y")) {
+//            std::cout << "Thank you for using Dnalanyzer." << "\nGoodbye! " << std::endl;
+//            Run::updateQuit();
+//            return true;
+//        }
+//        if (!strcmp(temp, "N") || !strcmp(temp, "n"))
+//            return false;
+//        else
+//            std::cout << "You have typed an invalid response. Please either confirm by 'y'/'Y', or cancel by "
+//                         "'n'/'N'." << std::endl;
+//    }
 }
 
 ////////////////////   End of: Save Command  ////////////////////
@@ -438,7 +475,7 @@ protected:
     dna_vector m_dna_v;
 private:
     std::list<Observer *> m_registeredObservers;
-    DataBase* m_db;
+    DataBase* m_db; // TODO: See if necessary to keep
     bool m_exit;
 };
 
